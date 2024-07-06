@@ -65,17 +65,9 @@ class nQueensSolver:
                 return False
         return True
     
-    def changeAssignment(self, assignment, next_variable):
-        for i in range(len(assignment)):
-            if next_variable[0][0] == assignment[i][0][0]  and next_variable[0][1] == assignment[i][0][1]:
-                assignment[i] = next_variable
-                return assignment
-        return assignment
-
-
     def dfs(self, queens):
         if self.allAssigned(queens):
-            return queens, True
+            return self.problem.queens, True
         for i in range(queens.shape[0]):
             if queens[i] == -1:
                 queen = i
@@ -83,10 +75,10 @@ class nQueensSolver:
         for row in self.problem.getDomain():
             self.problem.setVariable(queen, row)
             if self.problem.constraintMet():
-                resultingQueens, cspmet = self.dfs(queens)
-                if self.problem.constraintMet() and self.allAssigned(resultingQueens):
-                    return resultingQueens, True
-                queens[queen] = -1
+                self.problem.queens, cspmet = self.dfs(self.problem.queens)
+                ## perform filtering
+                if self.problem.constraintMet() and self.allAssigned(self.problem.queens):
+                    return self.problem.queens, True
                 self.problem.setVariable(queen, -1)
             else:
                 self.problem.setVariable(queen, -1)
