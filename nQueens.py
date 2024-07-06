@@ -1,11 +1,14 @@
 import numpy as np
-
+import time 
 class NQueens:
     def __init__(self, size):
         self.queens = np.arange(size) # 0th index queen on 0th column , etc, value represents the row of the queen
         for i in range(self.queens.shape[0]):
             self.queens[i] = -1
         self.size = size
+        self.domain = {}
+        for i in range(size):
+            self.domain[i] = np.arange(size)
     
     def setVariable(self, queen, row):
         self.queens[queen] = row
@@ -15,7 +18,7 @@ class NQueens:
         queens = self.queens
         for i in range(queens.shape[0]):
             if queens[i] != -1:
-                self.board[i][queens[i]] = 1
+                self.board[queens[i]][i] = 1
 
     
     def constraintMet(self):
@@ -56,7 +59,7 @@ class nQueensSolver:
         self.problem = problem
     
     def solve(self):
-        self.problem.queens, cspmet = self.dfs(self.problem.queens)
+        self.problem.queens, cspmet = self.backtrackWithForwardChecking()
         print(cspmet)
     
     def allAssigned(self, queens):
@@ -65,30 +68,102 @@ class nQueensSolver:
                 return False
         return True
     
-    def dfs(self, queens):
-        if self.allAssigned(queens):
+    def backtrack(self):
+        # return if assignment is complete, no check for illegal assignments
+        if self.allAssigned(self.problem.queens):
             return self.problem.queens, True
-        for i in range(queens.shape[0]):
-            if queens[i] == -1:
+        
+        # find next unassigned variable
+        for i in range(self.problem.queens.shape[0]):
+            if self.problem.queens[i] == -1:
                 queen = i
                 break
+        
+        # try out each value for the unassigned variable, call backtrack for each new assignment to simulate dfs behavior
+        for row in self.problem.domain[queen]:
+            self.problem.setVariable(queen, row)
+            if self.problem.constraintMet():  # partial assignments are also checked against constraints (main idea behind backtracking)
+                ## perform filtering here, if any
+                self.problem.queens, cspmet = self.backtrack()  # dfs call
+                if self.problem.constraintMet() and self.allAssigned(self.problem.queens): # checking for goal state 
+                    return self.problem.queens, True
+            else:
+                self.problem.setVariable(queen, -1) # if all possibilities fail for this variable, we backtrack and reset 
+    
+        return self.problem.queens, False
+    
+    def backtrackWithForwardChecking(self):
+        # return if assignment is complete, no check for illegal assignments
+        if self.allAssigned(self.problem.queens):
+            return self.problem.queens, True
+        
+        # find next unassigned variable
+        for i in range(self.problem.queens.shape[0]):
+            if self.problem.queens[i] == -1:
+                queen = i
+                break
+        
+        # try out each value for the unassigned variable, call backtrack for each new assignment to simulate dfs behavior
+        original_domain = {key: np.copy(value) for key, value in self.problem.domain.items()}
+        for row in self.problem.domain[queen]:
+            self.problem.setVariable(queen, row)
+            if self.problem.constraintMet():  # partial assignments are also checked against constraints (main idea behind backtracking)
+                ## forward checking (deletion of domain based on same row (diagonals not checked))
+
+                for key in self.problem.domain.keys():
+                    if self.problem.queens[key] == -1:
+                        domain = self.problem.domain[key]
+                        domain = np.delete(domain, np.where(domain == row))
+                        self.problem.domain[key] = domain
+        
+                self.problem.queens, cspmet = self.backtrackWithForwardChecking()  # dfs call
+                if self.problem.constraintMet() and self.allAssigned(self.problem.queens): # checking for goal state 
+                    return self.problem.queens, True
+                # reset domain if no possible configuration given current_var = current_val
+                self.problem.domain = {key: np.copy(value) for key, value in original_domain.items()}
+
+            else:
+                self.problem.setVariable(queen, -1) # if all possibilities fail for this variable, we backtrack and reset 
+
+    
+        return self.problem.queens, False
+    
+    def dfs(self):
+        # return if assignment is complete, no check for illegal assignments
+        if self.allAssigned(self.problem.queens):
+            return self.problem.queens, True
+        
+        # find next unassigned variable
+        for i in range(self.problem.queens.shape[0]):
+            if self.problem.queens[i] == -1:
+                queen = i
+                break
+        
+        # try out each value for the unassigned variable, call dfs for each new assignment 
         for row in self.problem.getDomain():
             self.problem.setVariable(queen, row)
-            if self.problem.constraintMet():
-                self.problem.queens, cspmet = self.dfs(self.problem.queens)
-                ## perform filtering
-                if self.problem.constraintMet() and self.allAssigned(self.problem.queens):
-                    return self.problem.queens, True
-                self.problem.setVariable(queen, -1)
+            # if self.problem.constraintMet(): #no constraint checking done at intermediate step! (this is the difference between backtrack and dfs)
+            self.problem.queens, cspmet = self.dfs()  # dfs call
+            ## perform filtering here, if any
+            if self.problem.constraintMet() and self.allAssigned(self.problem.queens): # checking for goal state 
+                return self.problem.queens, True
             else:
-                self.problem.setVariable(queen, -1)
+                self.problem.setVariable(queen, -1) # if all possibilities fail for this variable, we reset domain
     
-        return queens, False
+        return self.problem.queens, False
 
 
-nQueens = NQueens(16)
+nQueens = NQueens(8)
 Solver = nQueensSolver(nQueens)
+start_time = time.time()
 Solver.solve()
+end_time = time.time()
+
 nQueens.convertQueensToBoard()
 print(nQueens.board)
 print(nQueens.queens)
+print("Time taken:", end_time - start_time, "seconds")
+
+
+
+
