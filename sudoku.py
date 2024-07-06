@@ -35,7 +35,8 @@ class SudokuBoard:
         variables = []
         for i in range(self.board.shape[0]):
             for j in range(self.board.shape[1]):
-                variables.append((i,j))
+                if self.board[i][j] == 0:
+                    variables.append((i,j))
         return variables
     
     def getDomain(self):
