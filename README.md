@@ -4,3 +4,4 @@
 **Constraint Satisfaction Problems**
 - BackTracking Sudoku Solver
 - BackTracking nQueens Solver
+  - Forward Checking Implemented as well
