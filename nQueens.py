@@ -39,6 +39,43 @@ class NQueens:
                 return False
         return True
     
+    def minconflicts(self):
+        self.convertQueensToBoard()
+        total = 0
+        for row in self.board:
+            if np.sum(row) > 1:
+                total += np.sum(row)
+        for col in self.board.T:
+            if np.sum(col) > 1:
+                total += np.sum(col)
+        diag = self.board.shape[0]
+        for i in range(-1*(diag+1), diag):
+            if np.sum(self.board.diagonal(i)) > 1:
+                total += np.sum(self.board.diagonal(i)) 
+            flipped_board = np.fliplr(self.board)
+        for i in range(-1*(diag+1), diag):
+            if np.sum(flipped_board.diagonal(i)) > 1:
+                total += np.sum(flipped_board.diagonal(i))
+        return total
+    
+    def getQueenWithMostConflicts(self):
+        ## returns the queen with the most row conflicts 
+        self.convertQueensToBoard()
+        maxQueen = -1
+        conflicts = -1000
+        for queen in range(self.size):
+            row = self.queens[queen]
+            if np.sum(self.board[row]) > conflicts:
+                maxQueen = queen
+                conflicts = np.sum(self.board[row])
+        return maxQueen
+
+    
+    def getRandomAssignment(self):
+        size = self.size
+        for i in range(self.queens.shape[0]):
+            self.queens[i] = np.random.randint(0, size)
+    
     def getVariables(self):
         return self.queens
 
@@ -59,14 +96,39 @@ class nQueensSolver:
         self.problem = problem
     
     def solve(self):
-        self.problem.queens, cspmet = self.backtrackWithForwardChecking()
+        self.problem.queens, cspmet = self.backtrackWithForwardChecking() # self.localSearch(500)
         print(cspmet)
+        print(self.problem.constraintMet())
     
     def allAssigned(self, queens):
         for queen in queens:
             if queen == -1:
                 return False
         return True
+    
+    def localSearch(self, iterations):
+        for i in range(10): # 10 random restarts 
+            self.problem.getRandomAssignment()
+            numVars = self.problem.size
+            minimumConflict = self.problem.minconflicts()
+            for i in range(iterations): # perform iterative local search
+                if self.problem.constraintMet():
+                    return self.problem.queens, self.problem.minconflicts()
+                queen = np.random.randint(0, numVars) # get any random queen 
+                # queen = self.problem.getQueenWithMostConflicts()
+                # find the value for chosen queen that minizes conflict
+                for row in self.problem.domain[queen]:
+                    current_row = self.problem.queens[queen]
+                    self.problem.setVariable(queen, row)
+                    new_conflict = self.problem.minconflicts()
+                    if new_conflict <= minimumConflict:
+                        minimumConflict = new_conflict
+                    else:
+                        self.problem.setVariable(queen, current_row)
+
+        return self.problem.queens, self.problem.minconflicts()
+
+
     
     def backtrack(self):
         # return if assignment is complete, no check for illegal assignments
@@ -153,7 +215,7 @@ class nQueensSolver:
         return self.problem.queens, False
 
 
-nQueens = NQueens(8)
+nQueens = NQueens(20)
 Solver = nQueensSolver(nQueens)
 start_time = time.time()
 Solver.solve()
